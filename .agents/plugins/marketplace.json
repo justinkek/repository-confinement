@@ -1,0 +1,16 @@
+{
+	"name": "repository-confinement",
+	"interface": {
+		"displayName": "repository-confinement",
+		"shortDescription": "Keep an agent's writes inside the worktree it was started in."
+	},
+	"plugins": [
+		{
+			"name": "repository-confinement",
+			"source": {
+				"source": "local",
+				"path": "./distributions/codex"
+			}
+		}
+	]
+}

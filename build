@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Builds distributions/ and INSTALL.md with the ai-plugin-sdk, from plugin.json
+# and the sources beside it.
+#
+# The SDK is a checkout: $AI_PLUGIN_SDK if you set it, ../ai-plugin-sdk
+# otherwise.
+
+set -e
+
+plugin="$(cd "$(dirname "$0")" && pwd)"
+sdk="${AI_PLUGIN_SDK:-$plugin/../ai-plugin-sdk}"
+
+if [ ! -x "$sdk/build" ]; then
+  printf 'no ai-plugin-sdk at %s\n\n' "$sdk" >&2
+  printf 'git clone https://github.com/justinkek/ai-plugin-sdk %s\n' "$sdk" >&2
+  printf 'or set AI_PLUGIN_SDK to where yours is.\n' >&2
+  exit 1
+fi
+
+"$sdk/build" "$plugin" "$@"

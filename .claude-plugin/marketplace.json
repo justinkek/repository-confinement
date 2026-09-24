@@ -1,0 +1,15 @@
+{
+	"name": "repository-confinement",
+	"description": "Keep an agent's writes inside the worktree it was started in.",
+	"owner": {
+		"name": "Justin Kek",
+		"email": "justinkekjq@gmail.com"
+	},
+	"plugins": [
+		{
+			"name": "repository-confinement",
+			"source": "./distributions/claude",
+			"description": "Keep an agent's writes inside the worktree it was started in."
+		}
+	]
+}

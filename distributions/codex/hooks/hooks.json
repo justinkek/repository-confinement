@@ -1,0 +1,28 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash \"${PLUGIN_ROOT}/hooks/confine-to-repository.sh\""
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash \"${PLUGIN_ROOT}/hooks/note-a-new-version.sh\""
+					},
+					{
+						"type": "command",
+						"command": "bash \"${PLUGIN_ROOT}/hooks/replay-notes.sh\""
+					}
+				]
+			}
+		]
+	}
+}

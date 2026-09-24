@@ -1,0 +1,11 @@
+{
+	"name": "repository-confinement",
+	"version": "0.1.0",
+	"description": "Keep an agent's writes inside the worktree it was started in.",
+	"license": "MIT",
+	"author": {
+		"name": "Justin Kek",
+		"email": "justinkekjq@gmail.com"
+	},
+	"displayName": "repository-confinement"
+}

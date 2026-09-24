@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+#
+# The whole confinement decision, and nothing of the client that asked.
+#
+# Agent-neutral: no JSON parsing, no transport format, no tool names. That is
+# what lets one policy serve every client, so keep it that way.
+#
+#   confinement_decision <operation> <path> [cwd] [label]
+#
+#   operation   read or write
+#   path        the target, absolute, relative to cwd, or starting with ~
+#   cwd         where the agent is working, $PWD when left out
+#   label       a name for the operation in the reason text, never interpreted
+#
+# Prints one line:
+#
+#   deny <reason>   a hard block
+#   ask <reason>    a prompt for one-off approval
+#   (nothing)       defer to the client's own permission flow
+
+. "${BASH_SOURCE[0]%/*}/settings.sh"
+
+confinement_expanded() {
+  # A path read from a setting or a payload arrives with its ~ unexpanded, so
+  # the ~ matched here is the literal character.
+  # shellcheck disable=SC2088
+  case "$1" in
+    "~") printf '%s' "$HOME" ;;
+    "~/"*) printf '%s/%s' "$HOME" "${1#\~/}" ;;
+    "\$HOME") printf '%s' "$HOME" ;;
+    "\$HOME/"*) printf '%s/%s' "$HOME" "${1#\$HOME/}" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+confinement_absolute() {
+  local p
+  p="$(confinement_expanded "$1")"
+  case "$p" in /*) ;; *) p="$2/$p" ;; esac
+  printf '%s' "$p"
+}
+
+confinement_canonical() {
+  local p dir base tail=""
+  p="$(confinement_absolute "$1" "$2")"
+  dir="$p"
+  while [ ! -d "$dir" ]; do
+    base="$(basename "$dir")"
+    dir="$(dirname "$dir")"
+    tail="$base${tail:+/}$tail"
+    [ "$dir" = "/" ] && break
+  done
+  if dir="$(cd "$dir" 2>/dev/null && pwd -P)"; then
+    if [ -n "$tail" ]; then printf '%s/%s' "${dir%/}" "$tail"; else printf '%s' "$dir"; fi
+  else
+    printf '%s' "$p"
+  fi
+}
+
+confinement_listed() {
+  local target="$1" list="$2" pattern
+  local IFS=:
+  for pattern in $list; do
+    [ -n "$pattern" ] || continue
+    pattern="$(confinement_expanded "$pattern")"
+    # Unquoted on purpose: a listed path may hold a glob, such as ~/.claude-*.
+    # shellcheck disable=SC2254
+    case "$target" in
+      $pattern | $pattern/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+confinement_in_a_worktree() {
+  local target="$1" cwd="$2" line worktree
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*)
+        worktree="${line#worktree }"
+        worktree="$(cd "$worktree" 2>/dev/null && pwd -P || printf '%s' "$worktree")"
+        case "$target" in
+          "$worktree" | "$worktree"/*) return 0 ;;
+        esac
+        ;;
+    esac
+  done < <(git -C "$cwd" worktree list --porcelain 2>/dev/null)
+  return 1
+}
+
+confinement_decision() {
+  local op="$1" path="$2" cwd="${3:-$PWD}" label="${4:-$1}" repo target unresolved
+
+  [ -n "$path" ] || return 0
+
+  repo="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)"
+  [ -n "$repo" ] || return 0
+  repo="$(cd "$repo" 2>/dev/null && pwd -P || printf '%s' "$repo")"
+
+  target="$(confinement_canonical "$path" "$cwd")"
+  unresolved="$(confinement_absolute "$path" "$cwd")"
+
+  case "$target" in
+    "$repo" | "$repo"/*) return 0 ;;
+  esac
+
+  confinement_listed "$target" "$(setting_value SCRATCHPAD_PATHS)" && return 0
+  confinement_listed "$target" "$(setting_value STATE_PATHS)" && return 0
+
+  if [ "$op" = "write" ]; then
+    if [ "$(setting_value WRITE_SCOPE)" = "repository" ]; then
+      confinement_in_a_worktree "$target" "$cwd" && return 0
+      printf 'deny Refusing %s outside this repository. Writes are confined to %s and its other worktrees. Target: %s.\n' \
+        "$label" "$repo" "$target"
+      return 0
+    fi
+    printf 'deny Refusing %s outside the current worktree. Writes are confined to %s; the main repository and its other worktrees are read-only from here. Target: %s.\n' \
+      "$label" "$repo" "$target"
+    return 0
+  fi
+
+  # A symlinked config directory resolves somewhere else entirely, so the path
+  # as it was written is checked as well as the one it resolves to.
+  confinement_listed "$target" "$(setting_value CONFIG_PATHS)" && return 0
+  confinement_listed "$unresolved" "$(setting_value CONFIG_PATHS)" && return 0
+
+  confinement_in_a_worktree "$target" "$cwd" && return 0
+
+  if confinement_listed "$target" "$(setting_value PASTED_IMAGE_PATHS)"; then
+    case "$target" in
+      *.png | *.jpg | *.jpeg | *.gif | *.webp | *.svg | *.bmp | *.tiff | *.ico) return 0 ;;
+    esac
+  fi
+
+  printf 'ask %s target is outside this repository and its worktrees: %s. Approve to allow one-off access.\n' \
+    "$label" "$target"
+  return 0
+}
