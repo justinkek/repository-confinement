@@ -1,0 +1,56 @@
+{
+	"name": "repository-confinement",
+	"version": "0.1.0",
+	"description": "Keep an agent's writes inside the worktree it was started in.",
+	"displayName": "repository-confinement",
+	"license": "MIT",
+	"repository": "justinkek/repository-confinement",
+	"ai-plugin-sdk": {
+		"version": "0.6.7"
+	},
+	"author": {
+		"name": "Justin Kek",
+		"email": "justinkekjq@gmail.com"
+	},
+	"clients": [
+		"claude-code-local",
+		"zcode",
+		"claude-cowork",
+		"claude-code-cloud",
+		"codex",
+		"pi"
+	],
+	"hooks": {
+		"PreToolUse": [
+			"confine-to-repository.sh"
+		]
+	},
+	"settings": {
+		"WRITE_SCOPE": {
+			"kind": "choice",
+			"values": ["worktree", "repository"],
+			"default": "worktree",
+			"says": "where a write may land: the worktree the session started in, or any worktree of the same repository"
+		},
+		"SCRATCHPAD_PATHS": {
+			"kind": "text",
+			"default": "/tmp/claude-*/scratchpad:/tmp/claude-*/tasks:/private/tmp/claude-*/scratchpad:/private/tmp/claude-*/tasks",
+			"says": "the client's own temporary directories, read and written freely, separated by colons"
+		},
+		"STATE_PATHS": {
+			"kind": "text",
+			"default": "",
+			"says": "directories outside the repository an agent keeps state in, read and written freely, separated by colons"
+		},
+		"CONFIG_PATHS": {
+			"kind": "text",
+			"default": "~/.claude:~/.claude-*",
+			"says": "agent configuration directories, read without asking and never written, separated by colons"
+		},
+		"PASTED_IMAGE_PATHS": {
+			"kind": "text",
+			"default": "/tmp/claude-*:/private/tmp/claude-*",
+			"says": "where an image pasted into chat lands, so reading one there does not ask, separated by colons"
+		}
+	}
+}

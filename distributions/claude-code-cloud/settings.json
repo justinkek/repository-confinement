@@ -1,0 +1,38 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash \"/opt/repository-confinement/distributions/claude-code-cloud/refresh.sh\""
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash \"/opt/repository-confinement/distributions/claude-code-cloud/hooks/confine-to-repository.sh\""
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash \"/opt/repository-confinement/distributions/claude-code-cloud/hooks/note-a-new-version.sh\""
+					},
+					{
+						"type": "command",
+						"command": "bash \"/opt/repository-confinement/distributions/claude-code-cloud/hooks/replay-notes.sh\""
+					}
+				]
+			}
+		]
+	}
+}
