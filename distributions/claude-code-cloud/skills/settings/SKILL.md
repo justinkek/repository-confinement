@@ -22,6 +22,12 @@ Blank lines and lines opening with `#` are ignored, and the last assignment of a
 
 `REPOSITORY_CONFINEMENT_HOME` moves the settings file and the state under it together.
 
+A project can hold settings of its own in `.repository-confinement/settings` at its root, in
+the same shape. The hooks read it before `~/.repository-confinement/settings`, and an
+environment variable before either. Write there when the user wants a value
+for everyone working in the project rather than for themselves, and say that
+it is a file to commit.
+
 ## Before writing anything
 
 Read the steps below. Where they say no hook runs, write no
@@ -42,6 +48,9 @@ so pass on what it says rather than trying again.
 
 Where the file already holds a value for the key, say so before running it,
 since the hooks read it as the default.
+
+For the project's own file, put `--project <directory>` before the key,
+naming the root of the project.
 
 ## How to apply settings
 
